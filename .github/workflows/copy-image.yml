@@ -1,17 +1,44 @@
+name: Copy Image
+
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/copy-image.yml'
+  workflow_dispatch:
+    inputs:
+      SRC_IMAGE:
+        description: "源镜像"
+        required: true
+      DST_IMAGE:
+        description: "目标镜像（多平台使用,分隔）"
+        required: true
 
 jobs:
   copy-image:
     runs-on: ubuntu-24.04
     steps:
-      # - name: Checkout
-      #   uses: actions/checkout@v4
-      # - name: Setup Skopeo
-      #   uses: LemonDouble/skopeo-setup-action@v1.0.0
-      # - name: Copy Image
-
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgpgme-dev \
+            libassuan-dev \
+            libdevmapper-dev
+          curl -fsSL https://api.github.com/repos/jetsung/install-skopeo/releases | jq -r '.[]
+            | .assets[]
+            | .browser_download_url
+            | select(test("skopeo-.*-linux-amd64.tar.xz"))' \
+            | xargs curl -sL \
+            | tar xJ -C /usr/local/bin/ skopeo
+      - name: Check Skopeo Version
+        run: skopeo --version
+      - name: Set Docker Config
+        run: |
+          mkdir -p ~/.docker/
+          echo "${{ secrets.DOCKER_CONFIG_BASE64 }}" | base64 -d | jq -r | tee ~/.docker/config.json > /dev/null
+      - name: Copy Image
+        run: |
+          echo "src-image: ${{ inputs.SRC_IMAGE }}"
+          for dst_image in $(echo ${{ inputs.DST_IMAGE }} | tr ',' '\n'); do
+            echo "dst-image: $dst_image"
+            skopeo copy --all "docker://${{ inputs.SRC_IMAGE }}" "docker://$dst_image"
+          done
