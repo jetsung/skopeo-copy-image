@@ -1,0 +1,17 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/copy-image.yml'
+
+jobs:
+  copy-image:
+    runs-on: ubuntu-24.04
+    steps:
+      # - name: Checkout
+      #   uses: actions/checkout@v4
+      # - name: Setup Skopeo
+      #   uses: LemonDouble/skopeo-setup-action@v1.0.0
+      # - name: Copy Image
+
